@@ -1,6 +1,7 @@
 {
   "name": "@vaaas/rx-react",
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "exports": {
     "/event-bus": "./dist/event-bus/index.js"
