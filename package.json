@@ -14,5 +14,23 @@
     "@types/react": "^19.2.14",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
-  }
+  },
+  "description": "rxjs utilities for react",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vasileios Pasialiokis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaaas/rx-react.git"
+  },
+  "keywords": [
+    "rxjs",
+    "react"
+  ],
+  "bugs": {
+    "url": "https://github.com/vaaas/rx-react/issues"
+  },
+  "homepage": "https://github.com/vaaas/rx-react#readme"
 }
