@@ -1,5 +1,7 @@
-/run.sh
 /.gitignore
 /Containerfile
-/src
 /package-lock.json
+/run.sh
+/src
+/test
+/vitest.config.ts

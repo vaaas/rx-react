@@ -78,9 +78,7 @@ export class EventBus implements IEventBus {
   }
 }
 
-const EventBusContext = createContext<IEventBus>(new EventBus());
-
-export const EventBusProvider = EventBusContext.Provider;
+export const EventBusContext = createContext<IEventBus>(new EventBus());
 
 export function useEventBus(): IEventBus {
   const eventBus = useContext(EventBusContext);
