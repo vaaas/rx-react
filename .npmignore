@@ -2,6 +2,7 @@
 /Containerfile
 /package-lock.json
 /run.sh
+/scripts
 /src
 /test
 /vitest.config.ts
