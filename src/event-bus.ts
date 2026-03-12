@@ -5,6 +5,7 @@ import {
   groupBy,
   map,
   mergeMap,
+  tap,
 } from "rxjs";
 import { createContext, useContext } from "react";
 
@@ -69,7 +70,13 @@ export class EventBus implements IEventBus {
         groupBy((param) => param.event.constructor),
         mergeMap((group$) => {
           const handler = this.#mappings.get(group$.key);
-          return handler && group$.pipe(handler);
+          if (handler) return group$.pipe(handler);
+          else
+            return group$.pipe(
+              tap((x) =>
+                console.warn("Unhandled event:", x.event.constructor.name),
+              ),
+            );
         }),
       )
       .subscribe();
