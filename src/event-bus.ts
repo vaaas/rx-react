@@ -25,7 +25,7 @@ export type Handler<E extends Constructible> = UnaryFunction<
 export type Installer = UnaryFunction<IEventBus, IEventBus>;
 
 export interface IEventBus {
-  dispatch: UnaryFunction<Constructible, void>;
+  dispatch: UnaryFunction<InstanceType<Constructible>, void>;
   on: <E extends Constructible>(event: E, handler: Handler<E>) => IEventBus;
   install: (installer: Installer) => IEventBus;
   start: () => IEventBus;
@@ -42,7 +42,7 @@ export class EventBus implements IEventBus {
     this.#event$ = new Subject();
   }
 
-  dispatch<E extends Constructible>(event: E): this {
+  dispatch<E extends Constructible>(event: InstanceType<E>): this {
     this.#event$.next(event);
     return this;
   }
