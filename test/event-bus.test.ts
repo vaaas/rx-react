@@ -40,7 +40,7 @@ describe("EventBus", () => {
     );
   });
 
-  it("stops processing events when stopped", () => {
+  it("stops processing events when stopped, and resumes when restarted", () => {
     const handler = vi.fn();
     const bus = new EventBus();
 
@@ -59,5 +59,9 @@ describe("EventBus", () => {
 
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).not.toHaveBeenCalledWith(2);
+
+    bus.start().dispatch(new TestEvent(3));
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect(handler).toHaveBeenLastCalledWith(3);
   });
 });

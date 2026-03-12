@@ -31,6 +31,7 @@ export interface IEventBus {
   on: <E extends Constructible>(event: E, handler: Handler<E>) => IEventBus;
   install: (installer: Installer) => IEventBus;
   start: () => IEventBus;
+  stop: () => IEventBus;
 }
 
 export type Dispatch = IEventBus["dispatch"];
@@ -87,7 +88,11 @@ export class EventBus implements IEventBus {
   }
 
   stop() {
-    if (this.#subscription) this.#subscription.unsubscribe();
+    if (this.#subscription) {
+      this.#subscription.unsubscribe();
+      this.#subscription = undefined;
+    }
+    return this;
   }
 }
 
