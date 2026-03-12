@@ -1,6 +1,6 @@
 {
   "name": "@vaaas/rx-react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "description": "rxjs utilities for react",
   "author": "Vasileios Pasialiokis",
@@ -23,11 +23,11 @@
   },
   "type": "module",
   "exports": {
-    "/event-bus": {
+    "./event-bus": {
       "types": "./dist/event-bus.d.ts",
       "default": "./dist/event-bus.js"
     },
-    "/hooks": {
+    "./hooks": {
       "types": "./dist/hooks.d.ts",
       "default": "./dist/hooks.js"
     }
