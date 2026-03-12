@@ -39,4 +39,25 @@ describe("EventBus", () => {
       TestEvent.name,
     );
   });
+
+  it("stops processing events when stopped", () => {
+    const handler = vi.fn();
+    const bus = new EventBus();
+
+    const testHandler: Handler<typeof TestEvent> = pipe(
+      map(({ event }) => {
+        handler(event.value);
+        return undefined;
+      }),
+    );
+
+    bus.on(TestEvent, testHandler).start().dispatch(new TestEvent(1));
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    bus.stop();
+    bus.dispatch(new TestEvent(2));
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalledWith(2);
+  });
 });

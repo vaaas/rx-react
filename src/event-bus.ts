@@ -1,6 +1,7 @@
 import {
   Observable,
   Subject,
+  Subscription,
   UnaryFunction,
   groupBy,
   map,
@@ -37,6 +38,7 @@ export type Dispatch = IEventBus["dispatch"];
 export class EventBus implements IEventBus {
   #event$: Subject<unknown>;
   #mappings: Map<unknown, Handler<any>>;
+  #subscription: Subscription;
 
   constructor(mappings = new Map()) {
     this.#mappings = mappings;
@@ -58,8 +60,9 @@ export class EventBus implements IEventBus {
   }
 
   start(): this {
+    if (this.#subscription) return this;
     const dispatch = this.dispatch.bind(this);
-    this.#event$
+    this.#subscription = this.#event$
       .pipe(
         map(
           <T extends Constructible>(event: T): EventParameter<T> => ({
@@ -81,6 +84,10 @@ export class EventBus implements IEventBus {
       )
       .subscribe();
     return this;
+  }
+
+  stop() {
+    if (this.#subscription) this.#subscription.unsubscribe();
   }
 }
 
