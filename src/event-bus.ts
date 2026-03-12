@@ -8,9 +8,8 @@ import {
 } from "rxjs";
 import { createContext, useContext } from "react";
 
-export interface Constructible {
+interface Constructible {
   new (...args: any[]): any;
-  constructor: Constructible;
 }
 
 export interface EventParameter<E extends Constructible> {
