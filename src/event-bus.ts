@@ -18,7 +18,7 @@ export interface EventParameter<E extends Constructible> {
 }
 
 export type Handler<E extends Constructible> = UnaryFunction<
-  Observable<EventParameter<E>>,
+  Observable<EventParameter<InstanceType<E>>>,
   Observable<void>
 >;
 
