@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { map, pipe } from "rxjs";
+import { EMPTY, catchError, map, pipe } from "rxjs";
 import { EventBus, Handler } from "../src/event-bus.js";
 
 class TestEvent {
@@ -63,5 +63,33 @@ describe("EventBus", () => {
     bus.start().dispatch(new TestEvent(3));
     expect(handler).toHaveBeenCalledTimes(2);
     expect(handler).toHaveBeenLastCalledWith(3);
+  });
+
+  it("calls catchError logic when an error is thrown, and resumes normal flow for subsequent events", () => {
+    const handler = vi.fn();
+    const errorHandler = vi.fn();
+    const bus = new EventBus();
+
+    const testHandler: Handler<typeof TestEvent> = pipe(
+      map(({ event }) => {
+        if (event.value === -1) throw new Error("bad value");
+        handler(event.value);
+        return undefined;
+      }),
+      catchError((err, caught) => {
+        errorHandler(err.message);
+        return caught;
+      }),
+    );
+
+    bus.on(TestEvent, testHandler).start();
+
+    bus.dispatch(new TestEvent(-1));
+    expect(errorHandler).toHaveBeenCalledWith("bad value");
+    expect(handler).not.toHaveBeenCalled();
+
+    bus.dispatch(new TestEvent(42));
+    expect(handler).toHaveBeenCalledWith(42);
+    expect(errorHandler).toHaveBeenCalledTimes(1);
   });
 });

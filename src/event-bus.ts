@@ -10,7 +10,7 @@ import {
 } from "rxjs";
 import { createContext, useContext } from "react";
 
-interface Constructible {
+export interface Constructible {
   new (...args: any[]): any;
 }
 
