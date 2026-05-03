@@ -14,7 +14,7 @@ export interface Constructible {
   new (...args: any[]): any;
 }
 
-export interface EventParameter<E extends Constructible> {
+export interface EventParameter<E> {
   event: E;
   dispatch: Dispatch;
 }

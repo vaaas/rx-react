@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { EMPTY, catchError, map, pipe } from "rxjs";
-import { EventBus, Handler } from "../src/event-bus.js";
+import { EventBus, EventParameter, Handler } from "../src/event-bus.js";
 
 class TestEvent {
   constructor(public value: number) {}
@@ -63,6 +63,26 @@ describe("EventBus", () => {
     bus.start().dispatch(new TestEvent(3));
     expect(handler).toHaveBeenCalledTimes(2);
     expect(handler).toHaveBeenLastCalledWith(3);
+  });
+
+  it("exposes EventParameter parameterised by the event instance type", () => {
+    const handler = vi.fn();
+    const bus = new EventBus();
+
+    const consume = ({ event }: EventParameter<TestEvent>): void => {
+      handler(event.value);
+    };
+
+    const testHandler: Handler<typeof TestEvent> = pipe(
+      map((param) => {
+        consume(param);
+        return undefined;
+      }),
+    );
+
+    bus.on(TestEvent, testHandler).start().dispatch(new TestEvent(7));
+
+    expect(handler).toHaveBeenCalledWith(7);
   });
 
   it("calls catchError logic when an error is thrown, and resumes normal flow for subsequent events", () => {
