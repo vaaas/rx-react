@@ -1,15 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Observable, Observer, Subject, UnaryFunction } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  Observer,
+  Subject,
+  UnaryFunction,
+} from "rxjs";
 
 /**
- * Creates a Subject that emits the given dependency array whenever any dependency changes,
+ * Creates a BehaviorSubject that emits the given dependency array whenever any dependency changes,
  * bridging React's effect lifecycle into an observable stream.
+ *
+ * Uses a BehaviorSubject so that subscribers attached after mount still receive the latest
+ * dependency value. This avoids silent data loss when downstream subscribe effects run after
+ * the source's emit effect, which is the natural ordering when composing
+ * `useEffectStream → usePipe → useSubscription`.
  */
-export function useEffectStream<X extends unknown[]>(deps: [...X]): Subject<X> {
-  const stream = useRef(new Subject<X>());
+export function useEffectStream<X extends unknown[]>(
+  deps: [...X],
+): BehaviorSubject<X> {
+  const stream = useRef<BehaviorSubject<X> | null>(null);
+  if (stream.current === null) stream.current = new BehaviorSubject<X>(deps);
+  const isFirst = useRef(true);
 
   useEffect(() => {
-    stream.current.next(deps);
+    if (isFirst.current) {
+      isFirst.current = false;
+      return;
+    }
+    stream.current!.next(deps);
   }, deps);
 
   return stream.current;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { Subject, of, map } from "rxjs";
+import { BehaviorSubject, Subject, of, map } from "rxjs";
 import {
   useEffectStream,
   useSubject,
@@ -10,12 +10,13 @@ import {
 } from "../src/hooks.js";
 
 describe("useEffectStream", () => {
-  it("emits dependencies on mount", () => {
+  it("emits dependencies on mount (replayed to late subscribers)", () => {
     const values: [number, string][] = [];
     const { result } = renderHook(() => useEffectStream([1, "a"]));
     result.current.subscribe((v) => values.push(v));
 
-    expect(result.current).toBeInstanceOf(Subject);
+    expect(result.current).toBeInstanceOf(BehaviorSubject);
+    expect(values).toEqual([[1, "a"]]);
   });
 
   it("emits new values when deps change", () => {
@@ -29,7 +30,7 @@ describe("useEffectStream", () => {
     dep = 3;
     rerender();
 
-    expect(values).toEqual([[2], [3]]);
+    expect(values).toEqual([[1], [2], [3]]);
   });
 
   it("returns the same Subject across renders", () => {
