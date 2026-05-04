@@ -1,6 +1,6 @@
 {
   "name": "@vaaas/rx-react",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "description": "rxjs utilities for react",
   "author": "Vasileios Pasialiokis",
