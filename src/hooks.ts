@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BehaviorSubject,
   Observable,
@@ -8,89 +8,153 @@ import {
 } from "rxjs";
 
 /**
- * Creates a BehaviorSubject that emits the given dependency array whenever any dependency changes,
- * bridging React's effect lifecycle into an observable stream.
+ * Returns a value that is constant for the lifetime of the component.
  *
- * Uses a BehaviorSubject so that subscribers attached after mount still receive the latest
- * dependency value. This avoids silent data loss when downstream subscribe effects run after
- * the source's emit effect, which is the natural ordering when composing
- * `useEffectStream → usePipe → useSubscription`.
+ * The factory runs once on mount; subsequent renders return the same value.
+ * Unlike `useMemo`, which React may discard and recompute as a memory-saving
+ * heuristic, the returned value is guaranteed stable. Unlike `useRef`, the
+ * value is returned directly rather than wrapped in a `.current` shell.
+ *
+ * Useful for any per-component singleton: subjects, observables, class
+ * instances, anything else where reference stability is load-bearing.
+ */
+export function useConstant<X>(factory: () => X): X {
+  const ref = useRef<X | null>(null);
+  if (ref.current === null) ref.current = factory();
+  return ref.current;
+}
+
+/**
+ * Bridges React dependencies into an observable stream.
+ *
+ * Pass one argument and the stream emits scalar values; pass several and it
+ * emits a tuple of the same shape. Backed by a BehaviorSubject so subscribers
+ * attached after mount still receive the latest value.
+ *
+ * The dependency list doubles as React's effect dep array, so emissions track
+ * `Object.is` changes the same way `useEffect` does.
  */
 export function useEffectStream<X extends unknown[]>(
-  deps: [...X],
-): BehaviorSubject<X> {
-  const stream = useRef<BehaviorSubject<X> | null>(null);
-  if (stream.current === null) stream.current = new BehaviorSubject<X>(deps);
-  const isFirst = useRef(true);
+  ...deps: X
+): BehaviorSubject<X extends [infer A] ? A : X> {
+  type V = X extends [infer A] ? A : X;
+  const value = (deps.length === 1 ? deps[0] : deps) as V;
+  const stream = useConstant(() => new BehaviorSubject<V>(value));
 
   useEffect(() => {
-    if (isFirst.current) {
-      isFirst.current = false;
-      return;
-    }
-    stream.current!.next(deps);
+    if (stream.value !== value) stream.next(value);
   }, deps);
 
-  return stream.current;
+  return stream;
 }
 
 /**
  * Creates a stable Subject and a callback to push values into it.
- * Useful for turning React event handlers into observable sources.
+ * Useful for turning React event handlers into observable sources where
+ * "current value" is not meaningful (clicks, keystrokes, etc.).
+ *
+ * For component-local reactive state, prefer `useBehaviorSubject`.
  */
 export function useSubject<X extends unknown = undefined>(): [
   Subject<X>,
   UnaryFunction<X, void>,
 ] {
-  const stream = useRef(new Subject<X>());
-
-  const next = useCallback(
-    function next(x: X = undefined): void {
-      stream.current.next(x);
-    },
-    [stream.current],
-  );
-
-  return [stream.current, next];
+  return useConstant((): [Subject<X>, UnaryFunction<X, void>] => {
+    const subject = new Subject<X>();
+    return [subject, (x: X = undefined) => subject.next(x)];
+  });
 }
 
 /**
- * Applies an rxjs operator pipeline to a source observable once and returns a stable reference to the resulting observable.
+ * Creates a stable BehaviorSubject seeded with an initial value or a lazy
+ * initializer.
+ *
+ * Use the function form for expensive initials — like `useState`, the function
+ * is called once on mount and never re-evaluated.
+ *
+ * Callers can push imperatively via `.next(x)` and read synchronously via
+ * `.value`, which is convenient inside event handlers that don't want to
+ * subscribe.
  */
-export function usePipe<A, B>(
-  source: Observable<A>,
-  pipe: UnaryFunction<Observable<A>, Observable<B>>,
-): Observable<B> {
-  const result = useRef(source.pipe(pipe));
-  return result.current;
+export function useBehaviorSubject<X>(
+  initial: X | (() => X),
+): BehaviorSubject<X> {
+  return useConstant(() => {
+    const value =
+      typeof initial === "function" ? (initial as () => X)() : initial;
+    return new BehaviorSubject<X>(value);
+  });
+}
+
+/**
+ * Builds an observable from a factory once and returns a stable reference.
+ *
+ * The factory runs a single time per component instance; subsequent renders
+ * return the same observable. Use it for both single-source pipelines and
+ * multi-source derivations (e.g. `combineLatest`) — no dep array, by design.
+ */
+export function useObservable<X>(factory: () => Observable<X>): Observable<X> {
+  return useConstant(factory);
 }
 
 /** An observer or a simple callback that can be passed to `useSubscription`. */
 export type Listener<X> = Partial<Observer<X>> | UnaryFunction<X, void>;
 
 /**
- * Subscribes to an observable for the lifetime of the component,
- * automatically unsubscribing on unmount or when the source/observer changes.
- * Useful for running side-effects.
+ * Subscribes to an observable for the lifetime of the component, unsubscribing
+ * on unmount and re-subscribing only when `source` changes.
+ *
+ * The observer is captured by ref, so inline arrow functions are safe — the
+ * latest closure is always invoked without triggering a resubscribe. This
+ * preserves replay-buffered emissions on cold sources and avoids
+ * subscribe/unsubscribe churn on hot ones.
  */
 export function useSubscription<X>(
   source: Observable<X>,
   observer: Listener<X>,
-) {
+): void {
+  const ref = useRef(observer);
   useEffect(() => {
-    const subscription = source.subscribe(observer);
+    ref.current = observer;
+  });
+
+  useEffect(() => {
+    const subscription = source.subscribe({
+      next: (x: X) => {
+        const current = ref.current;
+        if (typeof current === "function") current(x);
+        else current.next?.(x);
+      },
+      error: (err: unknown) => {
+        const current = ref.current;
+        if (typeof current !== "function") current.error?.(err);
+      },
+      complete: () => {
+        const current = ref.current;
+        if (typeof current !== "function") current.complete?.();
+      },
+    });
     return () => subscription.unsubscribe();
-  }, [source, observer]);
+  }, [source]);
 }
 
 /**
- * Subscribes to an observable and returns its latest emitted value as React state,
- * starting with the provided initial value.
- * Turns an observable into react state.
+ * Subscribes to an observable and returns its latest emission as React state.
+ *
+ * When the source is a `BehaviorSubject` the initial state is read from
+ * `source.value`, so no initial argument is required and no flash of a
+ * placeholder value occurs. For plain observables an explicit `initial` is
+ * required.
  */
-export function useLatestState<X>(source: Observable<X>, initial: X) {
-  const [state, setState] = useState<X>(initial);
+export function useLatestState<X>(source: BehaviorSubject<X>): X;
+export function useLatestState<X>(source: Observable<X>, initial: X): X;
+export function useLatestState<X>(
+  source: Observable<X> | BehaviorSubject<X>,
+  initial?: X,
+): X {
+  const seed =
+    source instanceof BehaviorSubject ? source.value : (initial as X);
+  const [state, setState] = useState<X>(seed);
   useSubscription(source, setState);
-
   return state;
 }
