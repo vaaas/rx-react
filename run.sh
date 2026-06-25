@@ -2,7 +2,7 @@
 tag=rx-react
 
 inContainer() {
-    podman run -v ./:/app -i -t $tag "$@"
+    podman run --rm -v ./:/app -i -t $tag "$@"
 }
 
 case $1 in
