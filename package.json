@@ -35,6 +35,10 @@
     "./store": {
       "types": "./dist/store.d.ts",
       "default": "./dist/store.js"
+    },
+    "./persist": {
+      "types": "./dist/persist.d.ts",
+      "default": "./dist/persist.js"
     }
   },
   "dependencies": {
