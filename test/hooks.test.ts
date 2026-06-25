@@ -373,4 +373,40 @@ describe("useLatestState", () => {
     act(() => source.next(1));
     expect(result.current).toEqual(1);
   });
+
+  it("reflects the new source's current value when the source is swapped", () => {
+    const a = new BehaviorSubject(1);
+    const b = new BehaviorSubject(99);
+
+    const { result, rerender } = renderHook(
+      ({ source }: { source: BehaviorSubject<number> }) =>
+        useLatestState(source),
+      { initialProps: { source: a } },
+    );
+
+    expect(result.current).toEqual(1);
+
+    rerender({ source: b });
+
+    expect(result.current).toEqual(99);
+  });
+
+  it("resubscribes to the new source and ignores the old one after a swap", () => {
+    const a = new BehaviorSubject(1);
+    const b = new BehaviorSubject(10);
+
+    const { result, rerender } = renderHook(
+      ({ source }: { source: BehaviorSubject<number> }) =>
+        useLatestState(source),
+      { initialProps: { source: a } },
+    );
+
+    rerender({ source: b });
+
+    act(() => b.next(20));
+    expect(result.current).toEqual(20);
+
+    act(() => a.next(2));
+    expect(result.current).toEqual(20);
+  });
 });

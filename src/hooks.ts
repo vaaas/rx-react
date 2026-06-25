@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   BehaviorSubject,
   Observable,
@@ -141,10 +141,15 @@ export function useSubscription<X>(
 /**
  * Subscribes to an observable and returns its latest emission as React state.
  *
- * When the source is a `BehaviorSubject` the initial state is read from
- * `source.value`, so no initial argument is required and no flash of a
- * placeholder value occurs. For plain observables an explicit `initial` is
- * required.
+ * Built on `useSyncExternalStore`, so reads are tearing-safe under concurrent
+ * React: the current value is read synchronously during render and React
+ * reconciles any change that lands in the commit-to-subscribe gap.
+ *
+ * When the source is a `BehaviorSubject` the value is read straight from
+ * `source.value`, so no initial argument is required, no placeholder flash
+ * occurs, and swapping the source renders the new value immediately. For plain
+ * observables an explicit `initial` is required and the latest emission is
+ * tracked until the source emits.
  */
 export function useLatestState<X>(source: BehaviorSubject<X>): X;
 export function useLatestState<X>(source: Observable<X>, initial: X): X;
@@ -152,9 +157,25 @@ export function useLatestState<X>(
   source: Observable<X> | BehaviorSubject<X>,
   initial?: X,
 ): X {
-  const seed =
-    source instanceof BehaviorSubject ? source.value : (initial as X);
-  const [state, setState] = useState<X>(seed);
-  useSubscription(source, setState);
-  return state;
+  const latest = useRef<X>(
+    source instanceof BehaviorSubject ? source.value : (initial as X),
+  );
+
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const subscription = source.subscribe((value: X) => {
+        latest.current = value;
+        onChange();
+      });
+      return () => subscription.unsubscribe();
+    },
+    [source],
+  );
+
+  const getSnapshot =
+    source instanceof BehaviorSubject
+      ? () => source.value
+      : () => latest.current;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
