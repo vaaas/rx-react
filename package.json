@@ -1,12 +1,16 @@
 {
   "name": "@vaaas/rx-react",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "license": "MIT",
-  "description": "rxjs utilities for react",
+  "description": "rxjs application-architecture kit for react",
   "author": "Vasileios Pasialiokis",
   "keywords": [
     "rxjs",
-    "react"
+    "react",
+    "cqrs",
+    "event-bus",
+    "store",
+    "state-management"
   ],
   "repository": {
     "type": "git",
