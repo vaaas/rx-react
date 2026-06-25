@@ -47,6 +47,10 @@
     "./devtools": {
       "types": "./dist/devtools.d.ts",
       "default": "./dist/devtools.js"
+    },
+    "./query-bus": {
+      "types": "./dist/query-bus.d.ts",
+      "default": "./dist/query-bus.js"
     }
   },
   "dependencies": {

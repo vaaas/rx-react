@@ -145,21 +145,23 @@ export function useSubscription<X>(
  * React: the current value is read synchronously during render and React
  * reconciles any change that lands in the commit-to-subscribe gap.
  *
- * When the source is a `BehaviorSubject` the value is read straight from
- * `source.value`, so no initial argument is required, no placeholder flash
- * occurs, and swapping the source renders the new value immediately. For plain
- * observables an explicit `initial` is required and the latest emission is
- * tracked until the source emits.
+ * The seed is the source's own current value whenever it has one — a
+ * `BehaviorSubject` (`source.value`), or any other *behavior* observable that
+ * emits synchronously on subscription, such as a `store.select(...)`
+ * derivation. Those need no `initial` and never flash a placeholder. Pass
+ * `initial` only for a source that does not emit synchronously (a cold or
+ * event-driven `Observable`); it seeds the first render until the source emits.
  */
 export function useLatestState<X>(source: BehaviorSubject<X>): X;
-export function useLatestState<X>(source: Observable<X>, initial: X): X;
+export function useLatestState<X>(source: Observable<X>, initial?: X): X;
 export function useLatestState<X>(
   source: Observable<X> | BehaviorSubject<X>,
   initial?: X,
 ): X {
-  const latest = useRef<X>(
-    source instanceof BehaviorSubject ? source.value : (initial as X),
-  );
+  const latest = useRef<X>();
+  if (latest.current === undefined) {
+    latest.current = seedValue(source, initial);
+  }
 
   const subscribe = useCallback(
     (onChange: () => void) => {
@@ -175,7 +177,21 @@ export function useLatestState<X>(
   const getSnapshot =
     source instanceof BehaviorSubject
       ? () => source.value
-      : () => latest.current;
+      : () => latest.current as X;
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+function seedValue<X>(source: Observable<X>, initial?: X): X {
+  if (source instanceof BehaviorSubject) return source.value;
+  let value: X;
+  let emitted = false;
+  const subscription = source.subscribe((x: X) => {
+    if (!emitted) {
+      value = x;
+      emitted = true;
+    }
+  });
+  subscription.unsubscribe();
+  return emitted ? value! : (initial as X);
 }

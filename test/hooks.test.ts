@@ -374,6 +374,16 @@ describe("useLatestState", () => {
     expect(result.current).toEqual(1);
   });
 
+  it("seeds from a behavior observable's synchronous emission without an initial arg", () => {
+    const source = new BehaviorSubject(7);
+    const derived$ = source.pipe(map((n) => n * 2));
+    const { result } = renderHook(() => useLatestState(derived$));
+
+    expect(result.current).toEqual(14);
+    act(() => source.next(10));
+    expect(result.current).toEqual(20);
+  });
+
   it("reflects the new source's current value when the source is swapped", () => {
     const a = new BehaviorSubject(1);
     const b = new BehaviorSubject(99);
