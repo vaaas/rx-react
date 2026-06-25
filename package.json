@@ -39,6 +39,10 @@
     "./persist": {
       "types": "./dist/persist.d.ts",
       "default": "./dist/persist.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "default": "./dist/pipeline.js"
     }
   },
   "dependencies": {
