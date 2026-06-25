@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { BehaviorSubject } from "rxjs";
-import { shallow, useStoreSelector } from "../src/store.js";
+import { createStore, shallow, useStoreSelector } from "../src/store.js";
 
 describe("shallow", () => {
   it("returns true for identical references", () => {
@@ -128,5 +128,82 @@ describe("useStoreSelector", () => {
 
     act(() => a$.next({ count: 2 }));
     expect(result.current).toEqual(20);
+  });
+});
+
+describe("createStore", () => {
+  it("seeds value$ and get() with the initial state", () => {
+    const store = createStore({ count: 0, name: "a" });
+
+    expect(store.value$).toBeInstanceOf(BehaviorSubject);
+    expect(store.get()).toEqual({ count: 0, name: "a" });
+    expect(store.value$.value).toEqual({ count: 0, name: "a" });
+  });
+
+  it("shallow-merges a partial and emits", () => {
+    const store = createStore({ count: 0, name: "a" });
+    const emissions: { count: number; name: string }[] = [];
+    store.value$.subscribe((s) => emissions.push(s));
+
+    store.set({ count: 5 });
+
+    expect(store.get()).toEqual({ count: 5, name: "a" });
+    expect(emissions).toEqual([
+      { count: 0, name: "a" },
+      { count: 5, name: "a" },
+    ]);
+  });
+
+  it("accepts a function of the current state in set", () => {
+    const store = createStore({ count: 1, name: "a" });
+
+    store.set((s) => ({ count: s.count + 1 }));
+
+    expect(store.get()).toEqual({ count: 2, name: "a" });
+  });
+
+  it("replaces the whole state with update", () => {
+    const store = createStore({ count: 1, name: "a" });
+
+    store.update((s) => ({ count: s.count + 10, name: "b" }));
+
+    expect(store.get()).toEqual({ count: 11, name: "b" });
+  });
+
+  it("derives a slice via select, suppressing consecutive duplicates", () => {
+    const store = createStore({ count: 0, name: "a" });
+    const counts: number[] = [];
+    store.select((s) => s.count).subscribe((c) => counts.push(c));
+
+    store.set({ name: "b" });
+    store.set({ count: 1 });
+    store.set({ count: 1 });
+
+    expect(counts).toEqual([0, 1]);
+  });
+
+  it("uses a custom equality comparator in select", () => {
+    const store = createStore({ a: 1, b: 2, other: 0 });
+    const slices: { a: number; b: number }[] = [];
+    store
+      .select((s) => ({ a: s.a, b: s.b }), shallow)
+      .subscribe((x) => slices.push(x));
+
+    store.set({ other: 99 });
+
+    expect(slices).toEqual([{ a: 1, b: 2 }]);
+  });
+
+  it("feeds useStoreSelector for tearing-safe React reads", () => {
+    const store = createStore({ count: 0, name: "a" });
+    const { result } = renderHook(() =>
+      useStoreSelector(store.value$, (s) => s.count),
+    );
+
+    expect(result.current).toEqual(0);
+
+    act(() => store.set({ count: 3 }));
+
+    expect(result.current).toEqual(3);
   });
 });

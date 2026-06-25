@@ -1,5 +1,10 @@
 import { useCallback } from "react";
-import { BehaviorSubject } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  distinctUntilChanged,
+  map,
+} from "rxjs";
 import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector.js";
 
 /**
@@ -70,4 +75,51 @@ export function useStoreSelector<S, R>(
     selector,
     equalityFn,
   );
+}
+
+/**
+ * A thin reactive store over a `BehaviorSubject`, restoring the ergonomics a
+ * raw subject lacks: shallow-merge updates, a synchronous read, and a
+ * derivation that both the imperative and reactive paths can share.
+ */
+export interface Store<S> {
+  /** The underlying subject — pass it to `useStoreSelector` for React reads. */
+  value$: BehaviorSubject<S>;
+  /** Reads the current state synchronously. Equivalent to `value$.value`. */
+  get(): S;
+  /**
+   * Shallow-merges a partial (or the result of a function of the current
+   * state) into the state and emits — the `next()` ergonomics `BehaviorSubject`
+   * lacks.
+   */
+  set(partial: Partial<S> | ((state: S) => Partial<S>)): void;
+  /** Replaces the whole state with the result of `fn`. */
+  update(fn: (state: S) => S): void;
+  /**
+   * Derives a slice as an observable, suppressing consecutive duplicates per
+   * `eq` (default reference equality). Defines the derivation once so the
+   * synchronous (`selector(get())`) and reactive paths don't drift apart.
+   */
+  select<R>(selector: (state: S) => R, eq?: (a: R, b: R) => boolean): Observable<R>;
+}
+
+/**
+ * Creates a {@link Store} seeded with `initial`. Pure rxjs — no React — so it
+ * can be constructed once at app wiring and injected wherever state is owned.
+ */
+export function createStore<S extends object>(initial: S): Store<S> {
+  const value$ = new BehaviorSubject<S>(initial);
+
+  return {
+    value$,
+    get: () => value$.value,
+    set: (partial) => {
+      const current = value$.value;
+      const next = typeof partial === "function" ? partial(current) : partial;
+      value$.next({ ...current, ...next });
+    },
+    update: (fn) => value$.next(fn(value$.value)),
+    select: (selector, eq) =>
+      value$.pipe(map(selector), distinctUntilChanged(eq)),
+  };
 }
