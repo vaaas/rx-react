@@ -1,6 +1,6 @@
 {
   "name": "@vaaas/rx-react",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "description": "rxjs utilities for react",
   "author": "Vasileios Pasialiokis",
@@ -19,6 +19,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test",
     "publish-helper": "/bin/sh scripts/publish.sh"
   },
   "type": "module",
