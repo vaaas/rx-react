@@ -43,6 +43,10 @@
     "./pipeline": {
       "types": "./dist/pipeline.d.ts",
       "default": "./dist/pipeline.js"
+    },
+    "./devtools": {
+      "types": "./dist/devtools.d.ts",
+      "default": "./dist/devtools.js"
     }
   },
   "dependencies": {
