@@ -85,6 +85,16 @@ describe("EventBus", () => {
     expect(handler).toHaveBeenCalledWith(7);
   });
 
+  it("exposes the dispatched events via events$", () => {
+    const bus = new EventBus();
+    const seen: number[] = [];
+
+    bus.events$.subscribe((e) => seen.push((e as TestEvent).value));
+    bus.dispatch(new TestEvent(1)).dispatch(new TestEvent(2));
+
+    expect(seen).toEqual([1, 2]);
+  });
+
   it("calls catchError logic when an error is thrown, and resumes normal flow for subsequent events", () => {
     const handler = vi.fn();
     const errorHandler = vi.fn();

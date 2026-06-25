@@ -32,6 +32,7 @@ export interface IEventBus {
   install: (installer: Installer) => IEventBus;
   start: () => IEventBus;
   stop: () => IEventBus;
+  events$: Observable<unknown>;
 }
 
 export type Dispatch = IEventBus["dispatch"];
@@ -93,6 +94,10 @@ export class EventBus implements IEventBus {
       this.#subscription = undefined;
     }
     return this;
+  }
+
+  get events$(): Observable<unknown> {
+    return this.#event$.asObservable();
   }
 }
 
