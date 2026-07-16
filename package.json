@@ -1,16 +1,14 @@
 {
   "name": "@vaaas/rx-react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "license": "MIT",
-  "description": "rxjs application-architecture kit for react",
+  "description": "rxjs event bus and React hooks",
   "author": "Vasileios Pasialiokis",
   "keywords": [
     "rxjs",
     "react",
-    "cqrs",
     "event-bus",
-    "store",
-    "state-management"
+    "event-sourcing"
   ],
   "repository": {
     "type": "git",
@@ -36,14 +34,6 @@
       "types": "./dist/hooks.d.ts",
       "default": "./dist/hooks.js"
     },
-    "./store": {
-      "types": "./dist/store.d.ts",
-      "default": "./dist/store.js"
-    },
-    "./persist": {
-      "types": "./dist/persist.d.ts",
-      "default": "./dist/persist.js"
-    },
     "./pipeline": {
       "types": "./dist/pipeline.d.ts",
       "default": "./dist/pipeline.js"
@@ -51,15 +41,10 @@
     "./devtools": {
       "types": "./dist/devtools.d.ts",
       "default": "./dist/devtools.js"
-    },
-    "./query-bus": {
-      "types": "./dist/query-bus.d.ts",
-      "default": "./dist/query-bus.js"
     }
   },
   "dependencies": {
-    "rxjs": "^7.0.0",
-    "use-sync-external-store": "^1.2.0"
+    "rxjs": "^7.0.0"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
@@ -67,8 +52,8 @@
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.0.0",
-    "@types/use-sync-external-store": "^0.0.6",
     "happy-dom": "^20.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
     "typescript": "^5.0.0",
     "vite": "^7.0.0",
     "vitest": "^4.0.0"

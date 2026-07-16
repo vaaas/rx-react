@@ -147,10 +147,11 @@ export function useSubscription<X>(
  *
  * The seed is the source's own current value whenever it has one — a
  * `BehaviorSubject` (`source.value`), or any other *behavior* observable that
- * emits synchronously on subscription, such as a `store.select(...)`
- * derivation. Those need no `initial` and never flash a placeholder. Pass
- * `initial` only for a source that does not emit synchronously (a cold or
- * event-driven `Observable`); it seeds the first render until the source emits.
+ * emits synchronously on subscription (e.g. one ending in `startWith` or a
+ * `distinctUntilChanged` over a `BehaviorSubject`). Those need no `initial` and
+ * never flash a placeholder. Pass `initial` only for a source that does not emit
+ * synchronously (a cold or event-driven `Observable`); it seeds the first render
+ * until the source emits.
  */
 export function useLatestState<X>(source: BehaviorSubject<X>): X;
 export function useLatestState<X>(source: Observable<X>, initial?: X): X;
